@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <other.cpp>
 
-using namespace std;
 
 /**
  * Represents Trace which contains values and used data.
@@ -21,8 +20,8 @@ using namespace std;
 class Trace{
 
 protected:
-    vector<int> values;
     unsigned char data;
+    vector<int> values;
 
 public:
 
@@ -31,6 +30,8 @@ public:
     Trace(string path);
 
     Trace(int size, int value);
+
+    Trace(const Trace &second);
 
     /**
      * Set value of specific point of Trace
@@ -43,12 +44,15 @@ public:
 
     int getValue(int position);
 
+    vector<int> getValues();
+
     Trace operator+(Trace anotherOne);
 
     Trace operator-(Trace anotherOne);
 
     int addTo(Trace second);
 
+    int fromTo(Trace second);
     /**
      * Writes all values of Trace to std. output
      * @brief writeValues
@@ -89,7 +93,11 @@ public:
      */
     int cutBottom();
 
-    int cutEnd(int size);
+    int cutToSize(int size);
+
+    int cutEnd(int number);
+
+    int cutFront(int number);
 
     /**
      * Add random value to each VALUE of the Trace in specific range
@@ -114,9 +122,9 @@ public:
     */
     int addPeak(unsigned char key, unsigned char data, int position, int width, int height);
 
-    int moveRight(int value);
+    int moveRight(int value, int param);
 
-    int moveLeft(int value);
+    int moveLeft(int value, int param);
 
     int moveUp(int value);
 
@@ -129,7 +137,6 @@ public:
     int addOffsets(const int max);
 
     int applyOffsets(Trace offsets);
-
 };
 
 #endif // TRACE_H

@@ -4,10 +4,17 @@
 Trace::Trace(){
 }
 
+Trace::Trace(const Trace& second):data(second.data),values(second.values){
+}
+
 Trace::Trace(string path){
     if (readFile(path) == 1){
         cerr << "Problem during opening file" << endl;
     }
+}
+
+vector<int> Trace::getValues(){
+    return this->values;
 }
 
 Trace::Trace(int size, int value){
@@ -43,6 +50,13 @@ Trace Trace::operator-(Trace anotherOne){
 int Trace::addTo(Trace second){
     for(int i=0; i<this->getSize(); i++){
         this->setValue(i,this->getValue(i)+second.getValue(i));
+    }
+    return 0;
+}
+
+int Trace::fromTo(Trace second){
+    for(int i=0; i<this->getSize(); i++){
+        this->setValue(i,this->getValue(i)-second.getValue(i));
     }
     return 0;
 }
@@ -105,14 +119,23 @@ int Trace::cutBottom(){
     return 0;
 }
 
-int Trace::cutEnd(int size){
-    if (size>this->getSize())
+int Trace::cutToSize(int size){
+    if (size>=this->getSize())
         return 1;
 
     int temp = this->getSize();
     for(int i=0; i<temp-size; i++)
         this->values.pop_back();
+    return 0;
+}
 
+int Trace::cutEnd(int number){
+    values.erase(values.end()-number,values.end());
+    return 0;
+}
+
+int Trace::cutFront(int number){
+    values.erase(values.begin(),values.begin()+number);
     return 0;
 }
 
@@ -132,34 +155,46 @@ int Trace::addPeak(unsigned char key, unsigned char data, int position, int widt
         values.at(position+i) += peak*height*pow(2.7,-((exp*exp)/2));
         values.at(position-i) += peak*height*pow(2.7,-((exp*exp)/2));
     }
-    // this->addRandomNoise(position-width/2,position+width/2,noise);
     return 0;
 }
 
-int Trace::moveRight(int value){
-    int size = this->getSize();
-    for(int i=0; i<value; i++){
-        this->addValue(values.at(size-value+i));
+int Trace::moveRight(int value, int param){
+    if(param == 0){
+        int size = this->getSize();
+        for(int i=0; i<value; i++)
+            this->addValue(values.at(size-value+i));
+
+        for(int i=size-1; i>value; i--)
+            values.at(i)=values.at(i-value);
+
+        for(int i=value; i>=0; i--)
+            this->values.at(i)= 2*this->values.at(i+1)-this->values.at(i+2);
     }
-    for(int i=size-1; i>value; i--){
-        values.at(i)=values.at(i-value);
-    }
-    for(int i=value; i>=0; i--){
-        this->values.at(i)= 2*this->values.at(i+1)-this->values.at(i+2);
+
+    if(param == 1){
+        for(int i=this->values.size()-value-1; i>=0; i--)
+            values.at(i+value)=values.at(i);
     }
     return 0;
 }
 
-int Trace::moveLeft(int value){
-    for(int i=0; i<value; i++){
-        this->values.emplace(this->values.begin(),0);
-    }
-    for(int i=value; i<this->getSize(); i++){
-        values.at(i-value)=values.at(i);
-    }
+int Trace::moveLeft(int value, int param){
+    if (param==0){
+        for(int i=0; i<value; i++){
+            this->values.emplace(this->values.begin(),0);
+        }
+        for(int i=value; i<this->getSize(); i++){
+            values.at(i-value)=values.at(i);
+        }
 
-    for(int i=getSize()-value; i<getSize(); i++){
-        this->values.at(i)= (2*this->values.at(i-1))-this->values.at(i-2);
+        for(int i=getSize()-value; i<getSize(); i++){
+            this->values.at(i)= (2*this->values.at(i-1))-this->values.at(i-2);
+        }
+    }
+    if (param==1){
+        for(unsigned int i=0; i<this->values.size()-value; i++){
+            values.at(i)=values.at(i+value);
+        }
     }
     return 0;
 }
@@ -241,6 +276,7 @@ int Trace::addOffsets(const int max){
 
 
 int Trace::applyOffsets(Trace offsets){
+
     Trace temp(this->getSize(),-99999999);
 
     for(int i=0; i<this->getSize(); i++)

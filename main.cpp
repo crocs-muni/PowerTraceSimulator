@@ -8,10 +8,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <trace.h>
+#include <limits.h>
 
 const unsigned char KEY = 0x51;
-
-using namespace std;
 
 /**
  * From specific Trace creates number of files, each Trace contains peak in specific place and range, key is set, data are random generated
@@ -66,7 +65,7 @@ int createTracesVector(Trace myTrace, int number, vector <Trace> * Traces, unsig
         temp.addPeak(key, data, position, width, height);
         temp.addRandomNoise(0,temp.getSize()-1,noise);
         temp.setData(data);
-        temp.applyOffsets(offsets);
+       // temp.applyOffsets(offsets);
         Traces->push_back(temp);
     }
     return 0;
@@ -88,7 +87,7 @@ int saveTracesFile(vector <Trace> * Traces, string path){
 }
 
 
-int dpaKey(vector <Trace> * Traces, unsigned int key, Trace *diff){
+int dpaKey(vector <Trace> * Traces, unsigned int key, Trace& diff){
 
     int sumLow = 0;
     int sumHigh = 0;
@@ -111,15 +110,16 @@ int dpaKey(vector <Trace> * Traces, unsigned int key, Trace *diff){
     for(int i=0; i<high.getSize(); i++)
         high.setValue(i,high.getValue(i)/sumHigh);
 
-    diff->setData(key);
-    *diff = high-low;
-    return 0;
+    high.fromTo(low);
+    diff = high;
+    diff.setData(key);
+        return 0;
 }
 
 int dpa(vector <Trace> * Traces, vector <Trace> * diffTraces){
     for(unsigned int i=0; i<256; i++){
         Trace temp;
-        dpaKey(Traces, i, &temp);
+        dpaKey(Traces, i, temp);
         diffTraces->push_back(temp);
     }
     return 0;
@@ -133,7 +133,7 @@ int dpa(vector <Trace> * Traces, vector <Trace> * diffTraces){
  * @return
  */
 int fitnessBasic(vector <Trace> * Traces, int *position){
-    int temp= -99999; //nahrad int min value
+    int temp= INT_MIN;
     for(unsigned int i=0; i<Traces->size(); i++){
         for(int j=0; j<Traces->at(i).getSize(); j++){
             if(Traces->at(i).getValue(j) > temp){
@@ -146,39 +146,35 @@ int fitnessBasic(vector <Trace> * Traces, int *position){
 }
 
 
-int fitnessBetter(vector <Trace> * Traces, int *positionV, int *positionW){
+int fitness(vector <Trace> &Traces, int &positionV, int &positionW){
     int radius = 2;
     int maxValue = -9999999;
     int maxWide = -999999;
-    for(unsigned int i=0; i<Traces->size(); i++){
-        for(int j=radius; j<Traces->at(i).getSize()-radius; j++){
+    for(unsigned int i=0; i<Traces.size(); i++){
+        for(int j=radius; j<Traces.at(i).getSize()-radius; j++){
             int temp = 0;
             for(int k=j-radius; k<=j+radius; k++)
-                temp += Traces->at(i).getValue(k);
+                temp += Traces.at(i).getValue(k);
             temp = temp/(2*radius+1);
             if(temp>maxValue){
                 maxValue=temp;
-                *positionV=i;
+                positionV=i;
             }
-            //Traces->at(i).setValue(j,temp);
         }
     }
 
     radius = 5;
-    for(unsigned int i=0; i<Traces->size(); i++){
-        for(int j=radius; j<Traces->at(i).getSize()-radius; j++){
+    for(unsigned int i=0; i<Traces.size(); i++){
+        for(int j=radius; j<Traces.at(i).getSize()-radius; j++){
             int temp = 0;
             for(int k=j-radius; k<=j+radius; k++)
-                temp += Traces->at(i).getValue(k);
+                temp += Traces.at(i).getValue(k);
             if(temp>maxWide){
                 maxWide=temp;
-                *positionW=i;
-            }
-            // Traces->at(i).setValue(j,temp);
+                positionW=i;
+            }            
         }
     }
-
-    //fitnessBasic(Traces,position);
     return maxWide;
 }
 
@@ -187,8 +183,9 @@ int shake(vector <Trace> * Traces, const int noise){
 
     int temp = Traces->at(0).getSize();
     for(unsigned int i=0; i<Traces->size(); i++){
-        Traces->at(i).moveRight(rand()%noise);
-        Traces->at(i).cutEnd(temp);
+        int move = rand()%noise;
+        (rand()%2 == 0) ? Traces->at(i).moveRight(move,1) : Traces->at(i).moveLeft(move,1);
+        Traces->at(i).cutToSize(temp);
     }
     return 0;
 }
@@ -199,12 +196,12 @@ void test(){
     Trace skuska("D:\\dataout4.dat");
     skuska.cutBottom();
 
-    int noise = 10;
+    int noise = 300;
     int sum = 100;
     int shakeValue = 0; //to effect must be higher than 1
-    int offsets = 5;
+    int offsets = 0;
 
-    ofstream file("D:\\offsets\\shake0_off5.txt");
+    ofstream file("D:\\offsets\\shake0_off0.txt");
 
     file << "Used base Trace: " << "D:\\dataout4.dat" << endl;
     file << "Number of generated Traces with peak: 500" << endl;
@@ -217,7 +214,7 @@ void test(){
     file << "BEGIN TEST" << endl;
     file << "==========" << endl << endl << endl;
 
-    for (int j=0; j<7; j++){
+    for (int j=0; j<3; j++){
         int okv = 0;
         int okw = 0;
         int together = 0;
@@ -234,7 +231,7 @@ void test(){
             int positionV;
             int positionW;
 
-            fitnessBetter(&result,&positionV, &positionW);
+            fitness(result, positionV, positionW);
             //  cout << "Searched key by Better is: 0x" << hex << uppercase << position <<endl;
             if(positionV == (int)KEY)
                 okv++;
@@ -264,21 +261,31 @@ void testSec(){
     srand (time(NULL));
     Trace skuska("D:\\dataout4.dat");
 
+
    // Trace sk(skuska.getSize(),0);
   //  sk.addOffsets(20);
-    skuska.cutEnd(40);
-   skuska.cutBottom();
+    skuska.cutToSize(40);
+    skuska.cutBottom();
 
    // skuska.addOffsets(5);
-
-     //  skuska.addPeak(0xFF,0x51,100,10,10000);
+   //  skuska.addPeak(0xFF,0x51,100,10,10000);
     skuska.saveToFile("D:\\before.txt");
-    skuska.addPeak(KEY,KEY^0xFF,25,10,50);
-    skuska.saveToFile("D:\\peak.txt");
-    Trace temp(40,0);
-    temp.addOffsets(5);
-    skuska.applyOffsets(temp);
-    skuska.saveToFile("D:\\after.txt");
+    //skuska.addPeak(KEY,KEY^0xFF,25,10,50);
+ //   skuska.moveLeft(10);
+
+ //   skuska.saveToFile("D:\\left.txt");
+    skuska.moveLeft(5,1);
+    skuska.saveToFile("D:\\middle.txt");
+    skuska.cutEnd(10);
+    skuska.cutFront(10);
+    cout<<skuska.getSize();
+
+    //skuska.moveLeft(10,1);
+    skuska.saveToFile("D:\\right.txt");
+    //Trace temp(40,0);
+    //temp.addOffsets(5);
+    //skuska.applyOffsets(temp);
+    //skuska.saveToFile("D:\\after.txt");
 
    // skuska.addRandomNoise(20,30,200);
    // skuska.saveToFile("D:\\after.txt");
@@ -288,10 +295,8 @@ void testSec(){
 
 }
 
-int main()
-{
+int main(){
     //test();
      testSec();
     return 0;
 }
-
