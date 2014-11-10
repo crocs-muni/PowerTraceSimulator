@@ -139,13 +139,19 @@ int Trace::cutFront(int number){
     return 0;
 }
 
-int Trace::addRandomNoise(int start, int end, int noise){
-    for(int i=start; i<=end; i++){
-        values.at(i) += rand()%noise;
-    }
+int Trace::addRandomNoise(int start, int end, int noise){     
+    if (noise==0) return 0;
+    for(int i=start; i<=end; i++)
+        (rand()%2 ==0) ? values.at(i)+=rand()%noise : values.at(i)-=rand()%noise;
     return 0;
 }
 
+
+int Trace::inverseValues(){
+    for (auto &element : values)
+        element = -element;
+    return 0;
+}
 
 int Trace::addPeak(unsigned char key, unsigned char data, int position, int width, int height){
     double peak = (double)bitCount(data^key)/8;

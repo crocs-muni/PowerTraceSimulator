@@ -52,6 +52,8 @@ public:
 
     int addTo(Trace second);
 
+    int inverseValues();
+
     int fromTo(Trace second);
     /**
      * Writes all values of Trace to std. output
