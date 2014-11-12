@@ -1,111 +1,109 @@
 #include "trace.h"
 
-
 Trace::Trace(){
 }
 
 Trace::Trace(const Trace& second):data(second.data),values(second.values){
 }
 
-Trace::Trace(string path){
-    if (readFile(path) == 1){
+Trace::Trace(const string &path){
+    if (readFile(path) == E){
         cerr << "Problem during opening file" << endl;
     }
 }
 
-vector<int> Trace::getValues(){
-    return this->values;
-}
-
-Trace::Trace(int size, int value){
+Trace::Trace(const int &size, const int &value){
     for(int i=0; i<size; i++)
         this->values.push_back(value);
 }
 
-int Trace::setValue(int position, int value){
-    this->values.at(position) = value;
-    return 0;
+Trace Trace::operator+(const Trace& second){
+    Trace temp(*this);
+
+    for(int i=0; (i<second.getSize()) && (i<this->getSize()); i++)
+        temp.values.at(i) += second.getValue(i);
+    return temp;
 }
 
-int Trace::getValue(int position){
+Trace Trace::operator-(const Trace& second){
+    Trace temp(*this);
+
+    for(int i=0; (i<second.getSize()) && (i<this->getSize()); i++)
+        temp.values.at(i) -= second.getValue(i);
+    return temp;
+}
+
+vector<int> Trace::getValues() const{
+    return values;
+}
+
+int Trace::getValue(const int &position) const{
     return this->values.at(position);
 }
 
-Trace Trace::operator+(Trace anotherOne){
-    Trace temp;
-    for(int i=0; i<this->getSize(); i++){
-        temp.addValue(this->getValue(i)+anotherOne.getValue(i));
-    }
-    return temp;
+int Trace::setValue(const unsigned int &position, const int &value){
+    if (position >= values.size())
+        return RE;
+    this->values.at(position) = value;
+    return OK;
 }
 
-Trace Trace::operator-(Trace anotherOne){
-    Trace temp;
-    for(int i=0; i<this->getSize(); i++){
-        temp.addValue(this->getValue(i)-anotherOne.getValue(i));
-    }
-    return temp;
+int Trace::addition(const Trace &second){
+    for(int i=0; (i<second.getSize()) && (i<this->getSize()); i++)
+        this->values.at(i) += second.values.at(i);
+    return OK;
 }
 
-int Trace::addTo(Trace second){
-    for(int i=0; i<this->getSize(); i++){
-        this->setValue(i,this->getValue(i)+second.getValue(i));
-    }
-    return 0;
+int Trace::subtraction(const Trace &second){
+    for(int i=0; (i<second.getSize()) && (i<this->getSize()); i++)
+        this->values.at(i) -= second.values.at(i);
+    return OK;
 }
 
-int Trace::fromTo(Trace second){
-    for(int i=0; i<this->getSize(); i++){
-        this->setValue(i,this->getValue(i)-second.getValue(i));
-    }
-    return 0;
-}
-
-void Trace::writeValues(int start, int end){
-    for(int i=start; i<=end; i++){
+void Trace::writeValues(const int &start, const int &end) const{
+    for(int i=start; i<=end; i++)
         cout << values.at(i) << endl;
-    }
 }
 
+void Trace::writeValues() const{
+    for (auto &element : values)
+        cout << element << endl;
+}
 
-void Trace::addValue(int value){
+void Trace::addValue(const int &value){
     values.push_back(value);
 }
 
-
-int Trace::readFile(string path){
+int Trace::readFile(const string &path){
     ifstream file(path);
     if (!file) {
-        return 1;
+        return E;
     }
     string line;
     while(getline(file, line)){
         values.push_back(stoi(line));
     }
     file.close();
-    return 0;
-
+    return OK;
 }
 
-
-int Trace::saveToFile(string path){
+int Trace::saveToFile(const string& path) const{
     ofstream file(path);
     if (!file){
         cerr << "Could not open file!" << endl;
-        return 1;
+        return E;
     }
 
-    for(unsigned int i=0; i<values.size(); i++){
-        file << values.at(i) << endl;
-    }
+    for (auto &element : values)
+        file << element << endl;
+
     file.close();
-    return 0;
+    return OK;
 }
 
-int Trace::getSize(){
+int Trace::getSize() const{
     return values.size();
 }
-
 
 int Trace::cutBottom(){
     int min=values.at(0);
@@ -113,47 +111,50 @@ int Trace::cutBottom(){
         if (values.at(i)<min)
             min=values.at(i);
 
-    for(unsigned int i=0; i<values.size(); i++)
-        values.at(i) -= min;
+    for (auto &element : values)
+        element -= min;
 
-    return 0;
+    return OK;
 }
 
-int Trace::cutToSize(int size){
+int Trace::cutToSize(const int &size){
     if (size>=this->getSize())
-        return 1;
+        return RE;
 
     int temp = this->getSize();
     for(int i=0; i<temp-size; i++)
         this->values.pop_back();
-    return 0;
+    return OK;
 }
 
-int Trace::cutEnd(int number){
+int Trace::cutEnd(const int &number){
     values.erase(values.end()-number,values.end());
-    return 0;
+    return OK;
 }
 
-int Trace::cutFront(int number){
+int Trace::cutFront(const int &number){
     values.erase(values.begin(),values.begin()+number);
-    return 0;
+    return OK;
 }
 
-int Trace::addRandomNoise(int start, int end, int noise){     
-    if (noise==0) return 0;
+int Trace::addRandomNoise(const int &start, const int &end, const int &noise){
+    if ((start>end) || (start<0) || (start>=this->getSize()) || (end>=this->getSize())) return RE;
+    if (noise==0) return OK;
+
     for(int i=start; i<=end; i++)
-        (rand()%2 ==0) ? values.at(i)+=rand()%noise : values.at(i)-=rand()%noise;
-    return 0;
+        (rand()%2 == 0) ? values.at(i)+=rand()%(noise+1) : values.at(i)-=rand()%(noise+1);
+    return OK;
 }
-
 
 int Trace::inverseValues(){
     for (auto &element : values)
         element = -element;
-    return 0;
+    return OK;
 }
 
-int Trace::addPeak(unsigned char key, unsigned char data, int position, int width, int height){
+int Trace::addPeak(const unsigned char key, const unsigned char data, const int position, const int width, const int height){
+    if ((position+width/2 >= this->getSize()) || (position-width/2 < 0)) return RE;
+
     double peak = (double)bitCount(data^key)/8;
     values.at(position) += height*peak;
     for(int i=1; i<=width/2; i++){
@@ -161,10 +162,13 @@ int Trace::addPeak(unsigned char key, unsigned char data, int position, int widt
         values.at(position+i) += peak*height*pow(2.7,-((exp*exp)/2));
         values.at(position-i) += peak*height*pow(2.7,-((exp*exp)/2));
     }
-    return 0;
+    return OK;
 }
 
-int Trace::moveRight(int value, int param){
+int Trace::moveRight(const int value, const int param){
+    if ((param != 0) || (param != 1)) return WP;
+    if ((value < 0) || (value>=this->getSize())) return RE;
+
     if(param == 0){
         int size = this->getSize();
         for(int i=0; i<value; i++)
@@ -181,61 +185,57 @@ int Trace::moveRight(int value, int param){
         for(int i=this->values.size()-value-1; i>=0; i--)
             values.at(i+value)=values.at(i);
     }
-    return 0;
+    return OK;
 }
 
-int Trace::moveLeft(int value, int param){
+int Trace::moveLeft(const int value, const int param){
+    if ((param != 0) || (param != 1)) return WP;
+    if ((value < 0) || (value>=this->getSize())) return RE;
+
     if (param==0){
-        for(int i=0; i<value; i++){
+        for(int i=0; i<value; i++)
             this->values.emplace(this->values.begin(),0);
-        }
-        for(int i=value; i<this->getSize(); i++){
+
+        for(int i=value; i<this->getSize(); i++)
             values.at(i-value)=values.at(i);
-        }
 
-        for(int i=getSize()-value; i<getSize(); i++){
+
+        for(int i=getSize()-value; i<getSize(); i++)
             this->values.at(i)= (2*this->values.at(i-1))-this->values.at(i-2);
-        }
+
     }
+
     if (param==1){
-        for(unsigned int i=0; i<this->values.size()-value; i++){
+        for(unsigned int i=0; i<this->values.size()-value; i++)
             values.at(i)=values.at(i+value);
-        }
     }
-    return 0;
+    return OK;
 }
 
-int Trace::moveUp(int value){
-    for (int i=0; i<this->getSize(); i++){
-        values.at(i) += value;
-    }
-    return 0;
+int Trace::moveUp(const int value){
+    for (auto &element : values)
+        element += value;
+    return OK;
 }
 
-int Trace::moveDown(int value){
-    for (int i=0; i<this->getSize(); i++){
-        values.at(i) -= value;
-    }
-    return 0;
+int Trace::moveDown(const int value){
+    for (auto &element : values)
+        element -= value;
+
+    return OK;
 }
 
-unsigned char Trace::getData(){
+unsigned char Trace::getData() const{
     return this->data;
 }
 
-int Trace::setData(unsigned char data){
+int Trace::setData(const unsigned char data){
     this->data = data;
-    return 0;
+    return OK;
 }
 
-
-
 int Trace::addOffsets(const int max){
-    vector<bool> control;
-    for(unsigned int i=0; i<this->values.size(); i++){
-        control.push_back(0);
-    }
-
+    vector<bool> control(this->getSize(),0);
     int offset = 0;
 
     for(int i=0; i<max; i++){
@@ -245,9 +245,8 @@ int Trace::addOffsets(const int max){
             this->setValue(i,offset);
         } else {
             offset = -i;
-            while(control.at(i+offset) == 1){
+            while(control.at(i+offset) == 1)
                 offset++;
-            }
             control.at(i+offset) = 1;
             this->setValue(i,offset);
         }
@@ -276,14 +275,13 @@ int Trace::addOffsets(const int max){
             }
         }
     }
-
-    return 0;
+    return OK;
 }
 
+int Trace::applyOffsets(const Trace &offsets){
+    if (this->getSize() < offsets.getSize()) return RE;
 
-int Trace::applyOffsets(Trace offsets){
-
-    Trace temp(this->getSize(),-99999999);
+    Trace temp(this->getSize(),INT_MIN);
 
     for(int i=0; i<this->getSize(); i++)
         if(i+offsets.getValue(i) < this->getSize())
@@ -291,7 +289,5 @@ int Trace::applyOffsets(Trace offsets){
 
     for(int i=0; i<this->getSize(); i++)
         this->values.at(i) = temp.getValue(i);
-
-    return 0;
+    return OK;
 }
-

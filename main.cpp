@@ -1,14 +1,4 @@
-#include <iostream>
-#include <string>
-#include <vector>
-#include <fstream>
-#include <math.h>
-#include <iomanip>
-#include <time.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <trace.h>
-#include <limits.h>
 
 const unsigned char KEY = 0x51;
 
@@ -25,19 +15,23 @@ const unsigned char KEY = 0x51;
  * @param noise
  * @return
  */
-int createTracesFile(Trace myTrace, int number, string path, unsigned char key, int position, int width, int height, int noise){
-    if ((position+width/2) > myTrace.getSize()) {return 1;}
+int createTracesFile(Trace myTrace, const int& number, const string& path, const unsigned char& key, const int& position, const int& width, const int& height, const int& noise){
+    if (((position+width/2) > myTrace.getSize()) || (position-width/2<0))
+        return RE;
+
     ofstream file(path+"_record.dat");
+    int control = OK;
+
     for(int i=0; i<number; i++){
         Trace temp = myTrace;
         unsigned char data = rand()%256;
-        temp.addPeak(key, data, position, width, height);
-        temp.addRandomNoise(0,temp.getSize()-1,noise);
-        temp.saveToFile(path+to_string(i)+".dat");
+        control = temp.addPeak(key, data, position, width, height);
+        control = temp.addRandomNoise(0,temp.getSize()-1,noise);
+        control = temp.saveToFile(path+to_string(i)+".dat");
         file << "0x" << hex << setw(2) << uppercase << (int)data << " = " << path+to_string(i)+".dat" << endl;
     }
     file.close();
-    return 0;
+    return control;
 }
 
 /**
@@ -53,21 +47,25 @@ int createTracesFile(Trace myTrace, int number, string path, unsigned char key, 
  * @param noise
  * @return
  */
-int createTracesVector(Trace myTrace, int number, vector <Trace> * Traces, unsigned char key, int position, int width, int height, int noise, int offs){
-    if ((position+width/2) > myTrace.getSize()) {return 1;}
+int createTracesVector(const Trace& myTrace, const int& number, vector <Trace>& traces, const unsigned char& key, const int& position, const int& width, const int& height, const int& noise, const int& offs){
+    if (((position+width/2) > myTrace.getSize()) || (position-width/2<0))
+        return RE;
+
+    int control = OK;
+
     Trace offsets(myTrace.getSize(),0);
     offsets.addOffsets(offs);
 
     for(int i=0; i<number; i++){
         Trace temp = myTrace;
         unsigned char data = rand()%256;
-        temp.addPeak(key, data, position, width, height);
-        temp.addRandomNoise(0,temp.getSize()-1,noise);
-        temp.setData(data);
-        // temp.applyOffsets(offsets);
-        Traces->push_back(temp);
+        control = temp.addPeak(key, data, position, width, height);
+        control = temp.addRandomNoise(0,temp.getSize()-1,noise);
+        control = temp.setData(data);
+        control = temp.applyOffsets(offsets);
+        traces.push_back(temp);
     }
-    return 0;
+    return control;
 }
 
 
@@ -78,15 +76,15 @@ int createTracesVector(Trace myTrace, int number, vector <Trace> * Traces, unsig
  * @param path
  * @return
  */
-int saveTracesFile(vector <Trace> &Traces, string path){
-    for(unsigned int i=0; i<Traces.size(); i++){
-        Traces.at(i).saveToFile(path+to_string(i)+".dat");
-    }
-    return 0;
+int saveTracesFile(const vector <Trace> &Traces, const string& path){
+    int control = OK;
+    for(unsigned int i=0; i<Traces.size(); i++)
+        control = Traces.at(i).saveToFile(path+to_string(i)+".dat");
+    return control;
 }
 
 
-int dpaKey(vector <Trace> &Traces, unsigned int key, Trace &diff){
+int dpaKey(const vector <Trace> &Traces, const unsigned int& key, Trace &diff){
 
     int sumLow = 0;
     int sumHigh = 0;
@@ -95,10 +93,10 @@ int dpaKey(vector <Trace> &Traces, unsigned int key, Trace &diff){
 
     for(unsigned int i=0; i<Traces.size(); i++){
         if(bitCount(Traces.at(i).getData()^key) < 4){
-            low.addTo(Traces.at(i));
+            low.addition(Traces.at(i));
             sumLow++;
         } else {
-            high.addTo(Traces.at(i));
+            high.addition(Traces.at(i));
             sumHigh++;
         }
     }
@@ -109,19 +107,19 @@ int dpaKey(vector <Trace> &Traces, unsigned int key, Trace &diff){
     for(int i=0; i<high.getSize(); i++)
         high.setValue(i,high.getValue(i)/sumHigh);
 
-    high.fromTo(low);
+    high.subtraction(low);
     diff = high;
     diff.setData(key);
-    return 0;
+    return OK;
 }
 
-int dpa(vector <Trace> &Traces, vector <Trace> &diffTraces){
+int dpa(const vector <Trace> &Traces, vector <Trace> &diffTraces){
     for(unsigned int i=0; i<256; i++){
         Trace temp;
         dpaKey(Traces, i, temp);
         diffTraces.push_back(temp);
     }
-    return 0;
+    return OK;
 }
 
 /**
@@ -131,21 +129,19 @@ int dpa(vector <Trace> &Traces, vector <Trace> &diffTraces){
  * @param position
  * @return
  */
-int fitnessBasic(vector <Trace> * Traces, int *position){
+int findKey(const vector <Trace>& Traces, int& key){
     int temp= INT_MIN;
-    for(unsigned int i=0; i<Traces->size(); i++){
-        for(int j=0; j<Traces->at(i).getSize(); j++){
-            if(Traces->at(i).getValue(j) > temp){
-                temp=Traces->at(i).getValue(j);
-                *position = i;
+    for(unsigned int i=0; i<Traces.size(); i++)
+        for(int j=0; j<Traces.at(i).getSize(); j++)
+            if(Traces.at(i).getValue(j) > temp){
+                temp=Traces.at(i).getValue(j);
+                key = i;
             }
-        }
-    }
-    return 0;
+    return OK;
 }
 
 
-int fitness(vector <Trace> &Traces, int &position, int const radius){
+int fitness(const vector <Trace> &Traces, int& position, const int& radius){
     /*  int radius = 2;
     int maxValue = INT_MIN;
     int maxWide = INT_MIN;
@@ -180,12 +176,12 @@ int fitness(vector <Trace> &Traces, int &position, int const radius){
 int moveTraces(vector <Trace> &Traces, Trace &offsets){
     for(unsigned int i=0; i<Traces.size(); i++)
         (offsets.getValue(i)>0) ? Traces.at(i).moveRight(offsets.getValue(i),1) : Traces.at(i).moveLeft(-offsets.getValue(i),1);
-    return 0;
+    return OK;
 }
 
 
 int shake(vector <Trace> &Traces, const int noise, Trace &offsets){
-    if (noise == 0) return 0;
+    if (noise == 0) return OK;
 
     for(unsigned int i=0; i<Traces.size(); i++){
         int move = rand()%noise+1;
@@ -200,23 +196,24 @@ int shake(vector <Trace> &Traces, const int noise, Trace &offsets){
         Traces.at(i).cutFront(noise);
         Traces.at(i).cutEnd(noise);
     }
-    return 0;
+    return OK;
 }
 
 
 void test(){
     srand (time(NULL));
-    Trace skuska("D:\\dataout4.dat");
+    Trace skuska("data.dat");
     // skuska.cutBottom();
 
+    int control = OK;
     int noise = 50;
     int sum = 100;
-    int shakeValue = 0; //to effect must be higher than 1
+    int shakeValue = 5; //to effect must be higher than 1
     int offsets = 0;
     int radius = 5;
-    int numOfTraces = 500;
+    int numOfTraces = 1000;
 
-    ofstream file("D:\\offsets\\shake0_off0.txt");
+    ofstream file("D:\\shake0_off0.txt");
 
     file << "Used base Trace: " << "D:\\dataout4.dat" << endl;
     file << "Number of generated Traces with peak: " << numOfTraces << endl;
@@ -233,16 +230,13 @@ void test(){
         int ok = 0;
         for (int i=0; i<sum; i++){
             vector <Trace> array;
-            createTracesVector(skuska,numOfTraces,&array,KEY,100,10,100,noise,offsets);
-
+            control = createTracesVector(skuska,numOfTraces,array,KEY,100,10,100,noise,offsets);
             Trace offs;
             vector <Trace> result;
-            shake(array, shakeValue, offs);
-            dpa(array,result);
-
+            control = shake(array, shakeValue, offs);
+            control = dpa(array,result);
             int position;
             fitness(result, position, radius);
-
             if(position == (int)KEY)
                 ok++;
         }
@@ -256,20 +250,20 @@ void test(){
         cout << j+1 << ". done." << endl;
     }
     file.close();
-    cout << "Done!" << endl;
+    (control == OK) ? (cout << "Done without problems!" << endl) : (cout << "Done with ERRORS!" << endl);
 }
 
 void testSec(){
     srand (time(NULL));
-    Trace skuska("D:\\dataout4.dat");
+    Trace skuska("D:\\lab\\PowerTraceSimulator\\data.dat");
     int radius = 5;
     vector <Trace> array;
-    createTracesVector(skuska,500,&array,KEY,100,10,150,0,0);
+    createTracesVector(skuska,500,array,KEY,100,10,150,0,0);
     Trace offsets;
     vector <Trace> result;
     shake(array, 5, offsets);
 
-   /* offsets.saveToFile("D:\\offs.txt");
+    /* offsets.saveToFile("D:\\offs.txt");
     offsets.inverseValues();
     offsets.saveToFile("D:\\offsIN.txt");
     moveTraces(array, offsets);
@@ -277,7 +271,7 @@ void testSec(){
 
     Trace random(offsets.getSize(),0);
     random.addRandomNoise(0,random.getSize()-1,5);
-  //  moveTraces(array, random);
+    //  moveTraces(array, random);
 
     dpa(array,result);
     int position;
@@ -312,15 +306,25 @@ void testSec(){
     //sk.saveToFile("D:\\offsets.txt");
 }
 
+void testT(){
+    Trace skuska(50,10);
+    Trace dalsia(50,20);
+
+    (skuska-dalsia).writeValues(0,49);
+
+
+}
+
 int main(){
-    // test();
-    /*  float result = 0;
-    clock_t elapsed = -clock();
-    test();
-    elapsed += clock();
-    cout << "Without exceptions: " << elapsed * 1000 / CLOCKS_PER_SEC << " ms" << endl;
-    cout << result << endl;
-*/
-    testSec();
-    return 0;
+   // test();
+        clock_t elapsed = -clock();
+        test();
+        elapsed += clock();
+        cout << "Without exceptions: " << elapsed * 1000 / CLOCKS_PER_SEC << " ms" << endl;
+
+    //  testSec();
+
+    //testT();
+
+    return OK;
 }

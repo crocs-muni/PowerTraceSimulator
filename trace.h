@@ -1,17 +1,20 @@
 #ifndef TRACE_H
 #define TRACE_H
 
+#include <limits.h>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <fstream>
 #include <math.h>
 #include <iomanip>
-#include <time.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <other.cpp>
+#include <stdexcept>
 
+const unsigned int OK = 0;  //Correct State
+const unsigned int E = 1;   //General Error
+const unsigned int RE = 2;  //Range Error
+const unsigned int WP = 3;  //Wrong Parameter
 
 /**
  * Represents Trace which contains values and used data.
@@ -27,9 +30,9 @@ public:
 
     Trace();
 
-    Trace(string path);
+    Trace(const string& path);
 
-    Trace(int size, int value);
+    Trace(const int& size, const int& value);
 
     Trace(const Trace &second);
 
@@ -40,35 +43,38 @@ public:
      * @param value
      * @return
      */
-    int setValue(int position, int value);
+    int setValue(const unsigned int& position, const int &value);
 
-    int getValue(int position);
+    int getValue(const int& position) const;
 
-    vector<int> getValues();
+    vector<int> getValues() const;
 
-    Trace operator+(Trace anotherOne);
+    Trace operator+(const Trace& second);
 
-    Trace operator-(Trace anotherOne);
+    Trace operator-(const Trace& second);
 
-    int addTo(Trace second);
+    int addition(const Trace& second);
+
+    int subtraction(const Trace& second);
 
     int inverseValues();
 
-    int fromTo(Trace second);
     /**
      * Writes all values of Trace to std. output
      * @brief writeValues
      * @param start
      * @param end
      */
-    void writeValues(int start, int end);
+    void writeValues(const int& start, const int& end) const;
+
+    void writeValues() const;
 
     /**
      * Add value at the end of Trace
      * @brief addValue
      * @param value
      */
-    void addValue(int value);
+    void addValue(const int& value);
 
     /**
      * Load values of Trace from specific file, EACH VALUE ON EACH LINE!
@@ -76,7 +82,7 @@ public:
      * @param path
      * @return
      */
-    int readFile(string path);
+    int readFile(const string& path);
 
     /**
      * Save values of Trace to the file, 1 VALUE ON 1 LINE
@@ -84,9 +90,9 @@ public:
      * @param path
      * @return
      */
-    int saveToFile(string path);
+    int saveToFile(const string &path) const;
 
-    int getSize();
+    int getSize() const;
 
     /**
      * Find the lowest value and subtract this value from all values. The lowes value is 0
@@ -95,11 +101,11 @@ public:
      */
     int cutBottom();
 
-    int cutToSize(int size);
+    int cutToSize(const int& size);
 
-    int cutEnd(int number);
+    int cutEnd(const int& number);
 
-    int cutFront(int number);
+    int cutFront(const int& number);
 
     /**
      * Add random value to each VALUE of the Trace in specific range
@@ -109,7 +115,7 @@ public:
      * @param noise
      * @return
      */
-    int addRandomNoise(int start, int end, int noise);
+    int addRandomNoise(const int& start, const int& end, const int& noise);
 
     /**
     * Add peak to the Trace, using Hamming weight
@@ -122,23 +128,23 @@ public:
     * @param noise
     * @return
     */
-    int addPeak(unsigned char key, unsigned char data, int position, int width, int height);
+    int addPeak(const unsigned char key, const unsigned char data, const int position, const int width, const int height);
 
-    int moveRight(int value, int param);
+    int moveRight(const int value, const int param);
 
-    int moveLeft(int value, int param);
+    int moveLeft(const int value, const int param);
 
-    int moveUp(int value);
+    int moveUp(const int value);
 
-    int moveDown(int value);
+    int moveDown(const int value);
 
-    unsigned char getData();
+    unsigned char getData() const;
 
-    int setData(unsigned char data);
+    int setData(const unsigned char data);
 
     int addOffsets(const int max);
 
-    int applyOffsets(Trace offsets);
+    int applyOffsets(const Trace& offsets);
 };
 
 #endif // TRACE_H
