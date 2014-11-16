@@ -142,7 +142,7 @@ int Trace::addRandomNoise(const int &start, const int &end, const int &noise){
     if (noise==0) return OK;
 
     for(int i=start; i<=end; i++)
-        (rand()%2 == 0) ? values.at(i)+=rand()%(noise+1) : values.at(i)-=rand()%(noise+1);
+        (rand()%2 == 0) ? values.at(i)+=(rand()%(noise+1)) : values.at(i)-=(rand()%(noise+1));
     return OK;
 }
 
@@ -166,7 +166,7 @@ int Trace::addPeak(const unsigned char key, const unsigned char data, const int 
 }
 
 int Trace::moveRight(const int value, const int param){
-    if ((param != 0) || (param != 1)) return WP;
+    if ((param != 0) && (param != 1)) return WP;
     if ((value < 0) || (value>=this->getSize())) return RE;
 
     if(param == 0){
@@ -189,7 +189,7 @@ int Trace::moveRight(const int value, const int param){
 }
 
 int Trace::moveLeft(const int value, const int param){
-    if ((param != 0) || (param != 1)) return WP;
+    if ((param != 0) && (param != 1)) return WP;
     if ((value < 0) || (value>=this->getSize())) return RE;
 
     if (param==0){
