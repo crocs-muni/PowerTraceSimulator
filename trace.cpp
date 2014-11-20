@@ -7,9 +7,8 @@ Trace::Trace(const Trace& second):data(second.data),values(second.values){
 }
 
 Trace::Trace(const string &path){
-    if (readFile(path) == E){
+    if (readFile(path) == E)
         cerr << "Problem during opening file" << endl;
-    }
 }
 
 Trace::Trace(const int &size, const int &value){
@@ -31,10 +30,6 @@ Trace Trace::operator-(const Trace& second){
     for(int i=0; (i<second.getSize()) && (i<this->getSize()); i++)
         temp.values.at(i) -= second.getValue(i);
     return temp;
-}
-
-vector<int> Trace::getValues() const{
-    return values;
 }
 
 int Trace::getValue(const int &position) const{
@@ -229,9 +224,8 @@ unsigned char Trace::getData() const{
     return this->data;
 }
 
-int Trace::setData(const unsigned char data){
+void Trace::setData(const unsigned char data){
     this->data = data;
-    return OK;
 }
 
 int Trace::addOffsets(const int max){
