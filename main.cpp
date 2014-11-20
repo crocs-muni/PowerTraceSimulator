@@ -34,6 +34,23 @@ int createTracesFile(Trace myTrace, const int& number, const string& path, const
     return control;
 }
 
+int generateTraces(const Trace& myTrace, const int& number, vector <Trace>& traces, const unsigned char& key, const int& position, const int& width, const int& height, const int& noise){
+    if (((position+width/2) > myTrace.getSize()) || (position-width/2<0))
+        return RE;
+
+    int control = OK;
+    for(int i=0; i<number; i++){
+        Trace temp = myTrace;
+        unsigned char data = rand()%256;
+        control = temp.addPeak(key, data, position, width, height);
+        control = temp.addRandomNoise(0,temp.getSize()-1,noise);
+        control = temp.setData(data);
+        traces.push_back(temp);
+    }
+    return control;
+}
+
+
 /**
  * From specific Trace creates Vector of Traces, each Trace contains peak in specific place and range, key is set, data are random generated
  * @brief createTracesVector
@@ -67,6 +84,8 @@ int generateTraces(const Trace& myTrace, const int& number, vector <Trace>& trac
     }
     return control;
 }
+
+
 
 
 /**
@@ -141,22 +160,6 @@ int findKey(const vector <Trace>& Traces, int& key){
 
 
 int fitness(const vector <Trace> &Traces, int& position, const int& radius){
-    /*  int radius = 2;
-    int maxValue = INT_MIN;
-    int maxWide = INT_MIN;
-    for(unsigned int i=0; i<Traces.size(); i++){
-        for(int j=radius; j<Traces.at(i).getSize()-radius; j++){
-            int temp = 0;
-            for(int k=j-radius; k<=j+radius; k++)
-                temp += Traces.at(i).getValue(k);
-            temp = temp/(2*radius+1);
-            if(temp>maxValue){
-                maxValue=temp;
-                position=i;
-            }
-        }
-    }
-*/
     int fitnessValue = INT_MIN;
     for(unsigned int i=0; i<Traces.size(); i++){
         for(int j=radius; j<Traces.at(i).getSize()-radius; j++){
@@ -179,9 +182,28 @@ int moveTraces(vector <Trace> &Traces, Trace &offsets){
 }
 
 
+int shake(vector <Trace> &Traces, const int noise){
+    if (noise == 0) return OK;
+    if (noise > (Traces.at(0).getSize()/4)) return RE;
+
+    int control = OK;
+
+    for(unsigned int i=0; i<Traces.size(); i++){
+        int move = rand()%noise+1;
+        if (rand()%2 == 0)
+            control = Traces.at(i).moveRight(move,1);
+        else
+            control = Traces.at(i).moveLeft(move,1);
+
+        control = Traces.at(i).cutFront(noise);
+        control = Traces.at(i).cutEnd(noise);
+    }
+    return control;
+}
+
 int shake(vector <Trace> &Traces, const int noise, Trace &offsets){
     if (noise == 0) return OK;
-
+    if (noise > (Traces.at(0).getSize()/4)) return RE;
     int control = OK;
 
     for(unsigned int i=0; i<Traces.size(); i++){
@@ -199,6 +221,7 @@ int shake(vector <Trace> &Traces, const int noise, Trace &offsets){
     }
     return control;
 }
+
 
 void test(){
     srand (time(NULL));
@@ -254,6 +277,6 @@ void test(){
 
 int main(){
     srand (time(NULL));  // For different values of random each time you run program.
-
+    // write code HERE
     return OK;
 }
