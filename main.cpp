@@ -1,25 +1,26 @@
 #include <trace.h>
 
+//Set constant KEY
 const unsigned char KEY = 0x51;
 
 /**
- * From specific Trace creates number of files, each Trace contains peak in specific place and range, key is set, data are random d
- * @brief createTracesFile
- * @param myTrace
- * @param number
- * @param path
- * @param key
- * @param position
- * @param width
- * @param height
- * @param noise
- * @return
+ * @brief createTracesFile - From specific Trace creates number of files, each Trace contains peak at specific place and range, key is set, data are random.
+ *                           With the curves files is generated record file that contains information about individual keys which were used to generating peaks
+ * @param myTrace - base Trace; each trace in Vector is based on this trace and peak
+ * @param number - number of generated traces (recommended: 500 and more)
+ * @param path - path where traces (files) will be stored - OPTIONAL: create new directory
+ * @param key - KEY used to generate peaks
+ * @param position - position where peak is added (width/2 =< position < size of Trace-width/2)
+ * @param width - width of peak (Gaussian distribution is used)
+ * @param height - maximum height of peak (maximum is when KEY^DATA = 0xFF, minimum when KEY^DATA = 0x00
+ * @param noise - maximum value of noise which is distributed to all traces
+ * @return - information about the success of operation
  */
 int createTracesFile(Trace myTrace, const int& number, const string& path, const unsigned char& key, const int& position, const int& width, const int& height, const int& noise){
     if (((position+width/2) > myTrace.getSize()) || (position-width/2<0))
         return RE;
 
-    ofstream file(path+"_record.dat");
+    ofstream file(path+"_record.dat"); //name of output trace (file)
     int control = OK;
 
     for(int i=0; i<number; i++){
@@ -34,6 +35,18 @@ int createTracesFile(Trace myTrace, const int& number, const string& path, const
     return control;
 }
 
+/**
+ * @brief generateTraces - Create a Vector which contains Traces. Each Trace is unique and contains one peak with specific width and height placed at specific position.
+ * @param myTrace - base Trace; each trace in Vector is based on this trace and peak
+ * @param number - number of generated traces (recommended: 500 and more)
+ * @param traces - vector where are generated traces saved
+ * @param key - KEY used to generate peaks
+ * @param position - position where peak is added (width/2 =< position < size of Trace-width/2)
+ * @param width - width of peak (Gaussian distribution is used)
+ * @param height - maximum height of peak (maximum is when KEY^DATA = 0xFF, minimum when KEY^DATA = 0x00
+ * @param noise - maximum value of noise which is distributed to all traces
+ * @return - information about the success of operation
+ */
 int generateTraces(const Trace& myTrace, const int& number, vector <Trace>& traces, const unsigned char& key, const int& position, const int& width, const int& height, const int& noise){
     if (((position+width/2) > myTrace.getSize()) || (position-width/2<0))
         return RE;
@@ -44,25 +57,24 @@ int generateTraces(const Trace& myTrace, const int& number, vector <Trace>& trac
         unsigned char data = rand()%256;
         control = temp.addPeak(key, data, position, width, height);
         control = temp.addRandomNoise(0,temp.getSize()-1,noise);
-        control = temp.setData(data);
+        temp.setData(data);
         traces.push_back(temp);
     }
     return control;
 }
 
-
 /**
- * From specific Trace creates Vector of Traces, each Trace contains peak in specific place and range, key is set, data are random generated
- * @brief createTracesVector
- * @param myTrace
- * @param number
- * @param Traces
- * @param key
- * @param position
- * @param width
- * @param height
- * @param noise
- * @return
+ * @brief generateTraces - Same behavior as the method above + add random micro offsets (described in the wiki)
+ * @param myTrace - base Trace; each trace in Vector is based on this trace and peak
+ * @param number - number of generated traces (recommended: 500 and more)
+ * @param traces - vector where are generated traces saved
+ * @param key - KEY used to generate peaks
+ * @param position - position where peak is added (width/2 =< position < size of Trace-width/2)
+ * @param width - width of peak (Gaussian distribution is used)
+ * @param height - maximum height of peak (maximum is when KEY^DATA = 0xFF, minimum when KEY^DATA = 0x00
+ * @param noise - maximum value of noise which is distributed to all traces
+ * @param offs - maximum value of one micro offset
+ * @return - information about the success of operation
  */
 int generateTraces(const Trace& myTrace, const int& number, vector <Trace>& traces, const unsigned char& key, const int& position, const int& width, const int& height, const int& noise, const int& offs){
     if (((position+width/2) > myTrace.getSize()) || (position-width/2<0))
@@ -78,22 +90,18 @@ int generateTraces(const Trace& myTrace, const int& number, vector <Trace>& trac
         unsigned char data = rand()%256;
         control = temp.addPeak(key, data, position, width, height);
         control = temp.addRandomNoise(0,temp.getSize()-1,noise);
-        control = temp.setData(data);
+        temp.setData(data);
         control = temp.applyOffsets(offsets);
         traces.push_back(temp);
     }
     return control;
 }
 
-
-
-
 /**
- * Export Vector of Traces to the Files
- * @brief saveTracesFile
- * @param Traces
- * @param path
- * @return
+ * @brief saveTracesFile - Export Vector of Traces to files
+ * @param Traces - Traces to be exported
+ * @param path - path to folder + name of exported file
+ * @return information about the success of operation
  */
 int saveTracesFile(const vector <Trace> &Traces, const string& path){
     int control = OK;
@@ -102,7 +110,13 @@ int saveTracesFile(const vector <Trace> &Traces, const string& path){
     return control;
 }
 
-
+/**
+ * @brief dpaKey - Perform DPA (differential power analysis) at Vector of Traces with specific estimated KEY
+ * @param Traces - input Vector of Traces
+ * @param key - estimated KEY
+ * @param diff - output differential Trace
+ * @return information about the success of operation
+ */
 int dpaKey(const vector <Trace> &Traces, const unsigned int& key, Trace &diff){
 
     int sumLow = 0;
@@ -132,6 +146,12 @@ int dpaKey(const vector <Trace> &Traces, const unsigned int& key, Trace &diff){
     return OK;
 }
 
+/**
+ * @brief dpa - Perform DPA (differential power analysis) at Vector of Traces with all KEYS (0x00 - 0xFF)
+ * @param Traces - input Vector of Traces
+ * @param diffTraces - vector of output differential Traces (as parameter use empty vector <Trace>)
+ * @return information about the success of operation
+ */
 int dpa(const vector <Trace> &Traces, vector <Trace> &diffTraces){
     for(unsigned int i=0; i<256; i++){
         Trace temp;
@@ -142,10 +162,10 @@ int dpa(const vector <Trace> &Traces, vector <Trace> &diffTraces){
 }
 
 /**
- * @brief findKey
- * @param Traces
- * @param key
- * @return
+ * @brief findKey - basic KEY finder function, which finds higher value in all output differential Traces
+ * @param Traces - vector of output differential Traces (should be 256 Traces)
+ * @param key - found KEY
+ * @return information about the success of operation
  */
 int findKey(const vector <Trace>& Traces, int& key){
     int temp= INT_MIN;
@@ -158,8 +178,14 @@ int findKey(const vector <Trace>& Traces, int& key){
     return OK;
 }
 
-
-int fitness(const vector <Trace> &Traces, int& position, const int& radius){
+/**
+ * @brief fitness - better KEY finder function, which optimize all output differential Traces
+ * @param Traces - vector of output differential Traces (should be 256 Traces)
+ * @param key - found KEY
+ * @param radius - a level of optimization (OPTIONAL: 1-5)
+ * @return - fitnessValue (quality of result - for more advanced users)
+ */
+int fitness(const vector <Trace> &Traces, int& key, const int& radius){
     int fitnessValue = INT_MIN;
     for(unsigned int i=0; i<Traces.size(); i++){
         for(int j=radius; j<Traces.at(i).getSize()-radius; j++){
@@ -168,20 +194,20 @@ int fitness(const vector <Trace> &Traces, int& position, const int& radius){
                 temp += Traces.at(i).getValue(k);
             if(temp>fitnessValue){
                 fitnessValue=temp;
-                position=i;
+                key=i;
             }
         }
     }
     return fitnessValue;
 }
 
-int moveTraces(vector <Trace> &Traces, Trace &offsets){
-    for(unsigned int i=0; i<Traces.size(); i++)
-        (offsets.getValue(i)>0) ? Traces.at(i).moveRight(offsets.getValue(i),1) : Traces.at(i).moveLeft(-offsets.getValue(i),1);
-    return OK;
-}
 
-
+/**
+ * @brief shake - Random move all Traces to the right or left.
+ * @param Traces - Traces to be moved
+ * @param noise - maximum value of moving
+ * @return information about the success of operation
+ */
 int shake(vector <Trace> &Traces, const int noise){
     if (noise == 0) return OK;
     if (noise > (Traces.at(0).getSize()/4)) return RE;
@@ -201,6 +227,13 @@ int shake(vector <Trace> &Traces, const int noise){
     return control;
 }
 
+/**
+ * @brief shake - Random move all Traces to the right or left. And store offsets to Trace.
+ * @param Traces - Traces to be moved
+ * @param noise - maximum value of moving
+ * @param offsets - Trace where offsets will be stored (as parameter use empty Trace)
+ * @return information about the success of operation
+ */
 int shake(vector <Trace> &Traces, const int noise, Trace &offsets){
     if (noise == 0) return OK;
     if (noise > (Traces.at(0).getSize()/4)) return RE;
@@ -222,61 +255,24 @@ int shake(vector <Trace> &Traces, const int noise, Trace &offsets){
     return control;
 }
 
-
-void test(){
-    srand (time(NULL));
-    Trace skuska("data.dat");
-
-    int control = OK;
-    int noise = 100;
-    int sum = 100;
-    int shakeValue = 5; //to effect must be higher than 1
-    int offsets = 0;
-    int radius = 5;
-    int numOfTraces = 1000;
-
-    ofstream file("D:\\shake5_off0.txt");
-
-    file << "Used base Trace: " << "data.dat" << endl;
-    file << "Number of generated Traces with peak: " << numOfTraces << endl;
-    file << "Used key: 0x" << hex << uppercase << (int)KEY << endl;
-    file << "Position where peak is added: 100" << endl;
-    file << "Max height of peak 100" << endl;
-    file << "Width of peak: 10" << endl;
-    file << "Used max random offsets value (random move for each value): " << offsets << endl;
-    file << "Used shake value(random move to right): " << shakeValue << endl << endl;
-    file << "BEGIN TEST" << endl;
-    file << "==========" << endl << endl << endl;
-
-    for (int j=0; j<10; j++){
-        int ok = 0;
-        for (int i=0; i<sum; i++){
-            vector <Trace> array;
-            control = generateTraces(skuska,numOfTraces,array,KEY,100,10,100,noise,offsets);
-            Trace offs;
-            vector <Trace> result;
-            control = shake(array, shakeValue, offs);
-            control = dpa(array,result);
-            int position;
-            fitness(result, position, radius);
-            if(position == (int)KEY)
-                ok++;
-        }
-
-        file << "Number of tries: " << dec << sum << endl;
-        file << "Used noise: "  << noise << endl;
-        file << "Success: " << (float)ok/sum*100 << "%" << endl;
-        file << "---------------------------------" << endl << endl;
-
-        noise += 20;
-        cout << j+1 << ". done." << endl;
-    }
-    file.close();
-    (control == OK) ? (cout << "Done without problems!" << endl) : (cout << "Done with ERRORS!" << endl);
+/**
+ * @brief moveTraces - Move all Traces to the right or left. Offset values are in offsets Trace. The inversion method to Shake method.
+ * @param Traces - Traces to be moved (shifted)
+ * @param offsets - Trace contains values of moving
+ * @return information about the success of operation
+ */
+int moveTraces(vector <Trace> &Traces, Trace &offsets){
+    for(unsigned int i=0; i<Traces.size(); i++)
+        (offsets.getValue(i)>0) ? Traces.at(i).moveRight(offsets.getValue(i),1) : Traces.at(i).moveLeft(-offsets.getValue(i),1);
+    return OK;
 }
+
 
 int main(){
     srand (time(NULL));  // For different values of random each time you run program.
-    // write code HERE
+
+    //YOUR CODE
+    //You can set constant KEY at the beginning of this file.
+
     return OK;
 }
